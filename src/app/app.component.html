@@ -1,0 +1,18 @@
+<div class="container">
+  <h1>Demo Items</h1>
+
+  <div class="add-form">
+    <input [(ngModel)]="newItemName" placeholder="Item name" />
+    <input [(ngModel)]="newItemDescription" placeholder="Description (optional)" />
+    <button (click)="addItem()">Add</button>
+  </div>
+
+  <ul class="item-list">
+    <li *ngFor="let item of items">
+      <span><strong>{{ item.name }}</strong> — {{ item.description }}</span>
+      <button (click)="removeItem(item.id)">Delete</button>
+    </li>
+  </ul>
+
+  <p *ngIf="items.length === 0">No items yet — add one above.</p>
+</div>
