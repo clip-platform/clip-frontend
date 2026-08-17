@@ -1,4 +1,4 @@
-// In CI, set CHROME_BIN to a Chromium binary and pass --browsers=ChromeHeadlessCI
+// In CI, set CHROME_BIN to the Chromium binary
 module.exports = function (config) {
   config.set({
     basePath: '',
@@ -39,20 +39,8 @@ module.exports = function (config) {
     // CI-friendly configuration
     autoWatch: false,
 
-    customLaunchers: {
-      ChromeHeadlessCI: {
-        base: 'ChromeHeadless',
-        flags: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu'
-        ]
-      }
-    },
-
-    // Use the custom launcher by default
-    browsers: ['ChromeHeadlessCI'],
+    // Use standard ChromeHeadless launcher
+    browsers: ['ChromeHeadless'],
 
     // CI should exit after tests complete
     singleRun: true,
