@@ -22,10 +22,12 @@ test:
   stage: test
   image: node:20
   before_script:
-    - apt-get update && apt-get install -y chromium --no-install-recommends
+    - apt-get update
+    - apt-get install -y chromium --no-install-recommends
     - export CHROME_BIN=/usr/bin/chromium
-  script:
     - npm ci
+    
+  script:
     - npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage
   artifacts:
     paths:
