@@ -1,31 +1,55 @@
-image: 
-  name: sonarsource/sonar-scanner-cli:11
-  entrypoint: [""]
+stages:
+  - build
+  - test
+  - sonarqube
+  - package
 
 variables:
-  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
-  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  WEB_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
-stages:
-  - build-sonar
-
-
-build-sonar:
-  stage: build-sonar
-  
-  
-  cache:
-    policy: pull-push
-    key: "sonar-cache-$CI_COMMIT_REF_SLUG"
+build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - npm ci
+    - npm run build -- --configuration production
+  artifacts:
     paths:
-      - "${SONAR_USER_HOME}/cache"
-      - sonar-scanner/
-      
-  script: 
-  - sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}"
-  allow_failure: true
+      - dist
+    expire_in: 1 hour
+
+test:
+  stage: test
+  image: node:20
+  before_script:
+    - apt-get update && apt-get install -y chromium --no-install-recommends
+    - export CHROME_BIN=/usr/bin/chromium
+  script:
+    - npm ci
+    - npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage
+  artifacts:
+    paths:
+      - coverage
+    expire_in: 1 hour
+
+sonarqube-check:
+  stage: sonarqube
+  image: sonarsource/sonar-scanner-cli:latest
+  script:
+    - sonar-scanner -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
   rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_COMMIT_BRANCH == 'master'
-    - if: $CI_COMMIT_BRANCH == 'main'
-    - if: $CI_COMMIT_BRANCH == 'develop'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+docker-build-push:
+  stage: package
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - docker build -t $WEB_IMAGE -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $WEB_IMAGE
+    - docker push $CI_REGISTRY_IMAGE:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
